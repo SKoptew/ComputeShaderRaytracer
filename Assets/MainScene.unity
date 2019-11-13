@@ -243,6 +243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 716873619553b224cb410da530c5d8d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  BouncesCount: 6
   RayTracingCS: {fileID: 7200000, guid: ad1958615e9849545b44fef52ae925de, type: 3}
   SkyboxTexture: {fileID: 2800000, guid: 35c913fd6df93844db804d750b50e138, type: 3}
   AmbientColor: {r: 0.6698113, g: 0.6698113, b: 0.6698113, a: 1}

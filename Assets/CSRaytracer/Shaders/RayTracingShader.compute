@@ -5,6 +5,8 @@ RWTexture2D<float4> Result; // GetDimensions, Load, operator[]
 Texture2D<float4> _SkyboxTexture;
 SamplerState sampler_SkyboxTexture;
 
+int _BouncesCount;
+
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
 float4   _PixelOffsetAA; // xz - pixel offset, changing every frame; zw - unised
@@ -184,7 +186,7 @@ void CSMain (uint3 groupID          : SV_DispatchThreadID,
     //float3 color = Shade(ray, hit);
 
     float3 result = 0.0;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < _BouncesCount; i++)
     {
         RayHit hit = TraceScene(ray);
 

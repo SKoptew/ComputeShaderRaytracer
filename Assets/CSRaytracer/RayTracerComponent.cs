@@ -1,9 +1,13 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 //-- component must be attached to camera (due to OnRenderImage)
 [ExecuteAlways, RequireComponent(typeof(Camera))]
 public class RayTracerComponent : MonoBehaviour
 {
+    [Range(0,16)]
+    public int BouncesCount = 6;
+
     public ComputeShader RayTracingCS;
     public Texture       SkyboxTexture;
     public Color         AmbientColor = Color.white;
@@ -20,6 +24,8 @@ public class RayTracerComponent : MonoBehaviour
     {
         public static int TexResult = Shader.PropertyToID("Result");
         public static int TexSkybox = Shader.PropertyToID("_SkyboxTexture");
+
+        public static int IntBouncesCount = Shader.PropertyToID("_BouncesCount");
 
         public static int MatCameraToWorld           = Shader.PropertyToID("_CameraToWorld");
         public static int MatCameraInverseProjection = Shader.PropertyToID("_CameraInverseProjection");
@@ -91,6 +97,8 @@ public class RayTracerComponent : MonoBehaviour
 
         RayTracingCS.SetTexture(kernelIndex, ShaderProperties.TexResult, _target);
         RayTracingCS.SetTexture(kernelIndex, ShaderProperties.TexSkybox, SkyboxTexture);
+
+        RayTracingCS.SetInt(ShaderProperties.IntBouncesCount, BouncesCount);
 
         RayTracingCS.SetMatrix(ShaderProperties.MatCameraToWorld,           _camera.cameraToWorldMatrix);
         RayTracingCS.SetMatrix(ShaderProperties.MatCameraInverseProjection, _camera.projectionMatrix.inverse);
