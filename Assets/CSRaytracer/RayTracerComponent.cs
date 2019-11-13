@@ -1,5 +1,7 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System.Collections.Generic;
+using Unity.Collections.LowLevel.Unsafe;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 //-- component must be attached to camera (due to OnRenderImage)
 [ExecuteAlways, RequireComponent(typeof(Camera))]
@@ -14,6 +16,8 @@ public class RayTracerComponent : MonoBehaviour
 
     public Light DirectionalLight;
 
+    private ComputeBuffer _bufferSpheres;
+
     private Camera        _camera;
     private RenderTexture _target;
 
@@ -25,6 +29,8 @@ public class RayTracerComponent : MonoBehaviour
         public static int TexResult = Shader.PropertyToID("Result");
         public static int TexSkybox = Shader.PropertyToID("_SkyboxTexture");
 
+        public static int CompBuffSpheres = Shader.PropertyToID("_Spheres");
+
         public static int IntBouncesCount = Shader.PropertyToID("_BouncesCount");
 
         public static int MatCameraToWorld           = Shader.PropertyToID("_CameraToWorld");
@@ -35,9 +41,18 @@ public class RayTracerComponent : MonoBehaviour
         public static int VecDirectionalLight  = Shader.PropertyToID("_DirectionalLight");
     };
 
+    private struct Sphere
+    {
+        public Vector3 position;
+        public float   radius;
+        public Vector3 albedo;
+        public Vector3 specular;
+    };
+
     private void Awake()
     {
         _camera = GetComponent<Camera>();
+        SetupScene();
     }
 
     private void Update()
@@ -52,6 +67,16 @@ public class RayTracerComponent : MonoBehaviour
     private void OnValidate()
     {
         ResetRendering();
+    }
+
+    private void OnDestroy()
+    {
+        if (_bufferSpheres != null)
+        {
+            _bufferSpheres.Release();
+            _bufferSpheres.Dispose();
+            _bufferSpheres = null;
+        }
     }
 
     private void ResetRendering()
@@ -86,7 +111,8 @@ public class RayTracerComponent : MonoBehaviour
     {
         return RayTracingCS     != null &&
                SkyboxTexture    != null &&
-               DirectionalLight != null;
+               DirectionalLight != null &&
+               _bufferSpheres   != null;
     }
 
     private void RenderToTexture(RenderTexture dest)
@@ -97,6 +123,8 @@ public class RayTracerComponent : MonoBehaviour
 
         RayTracingCS.SetTexture(kernelIndex, ShaderProperties.TexResult, _target);
         RayTracingCS.SetTexture(kernelIndex, ShaderProperties.TexSkybox, SkyboxTexture);
+
+        RayTracingCS.SetBuffer(kernelIndex, ShaderProperties.CompBuffSpheres, _bufferSpheres);
 
         RayTracingCS.SetInt(ShaderProperties.IntBouncesCount, BouncesCount);
 
@@ -113,6 +141,36 @@ public class RayTracerComponent : MonoBehaviour
         int threadsGroupY = Mathf.CeilToInt(Screen.height / 8.0f);
 
         RayTracingCS.Dispatch(kernelIndex, threadsGroupX, threadsGroupY, 1);
+    }
+
+    private void SetupScene()
+    {
+        List<Sphere> spheres = new List<Sphere>();
+
+        int cnt = 4;
+        float step = 2.0f;
+
+        for (int x = 0; x < cnt; x++)
+        for (int y = 0; y < cnt; y++)
+        {
+            var sphere = new Sphere();
+
+            sphere.position = new Vector3(x * step, 1.0f, y * step);
+            sphere.radius = Mathf.Lerp(1.0f, 1.5f, Random.value);
+            sphere.albedo = new Vector3(0.4f + Mathf.Abs(x) * 0.3f, 0.2f + Mathf.Abs(y) * 0.4f, 1.0f - Mathf.Abs(x * y) * 0.15f);
+            sphere.specular = new Vector3(1.0f - Mathf.Clamp01(y), 1.0f - Mathf.Clamp01(y), 1.0f - Mathf.Clamp01(y));
+
+            spheres.Add(sphere);
+        }
+
+        //-- fill computeBuffer
+        if (_bufferSpheres == null)
+        {
+            int stride = UnsafeUtility.SizeOf<Sphere>();
+            _bufferSpheres = new ComputeBuffer(spheres.Count, stride);
+        }
+
+        _bufferSpheres.SetData(spheres);
     }
 
     private void InitRenderTexture()
