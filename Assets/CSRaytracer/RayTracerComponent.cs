@@ -148,7 +148,7 @@ public class RayTracerComponent : MonoBehaviour
         List<Sphere> spheres = new List<Sphere>();
 
         int cnt = 4;
-        float step = 2.0f;
+        float step = 4.0f;
 
         for (int x = 0; x < cnt; x++)
         for (int y = 0; y < cnt; y++)
