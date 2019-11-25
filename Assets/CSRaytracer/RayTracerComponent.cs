@@ -26,19 +26,18 @@ public class RayTracerComponent : MonoBehaviour
 
     private static class ShaderProperties
     {
-        public static int TexResult = Shader.PropertyToID("Result");
-        public static int TexSkybox = Shader.PropertyToID("_SkyboxTexture");
+        internal static readonly int TexResult                  = Shader.PropertyToID("Result");
+        internal static readonly int TexSkybox                  = Shader.PropertyToID("_SkyboxTexture");
 
-        public static int CompBuffSpheres = Shader.PropertyToID("_Spheres");
+        internal static readonly int CompBuffSpheres            = Shader.PropertyToID("_Spheres");
+        internal static readonly int IntBouncesCount            = Shader.PropertyToID("_BouncesCount");
 
-        public static int IntBouncesCount = Shader.PropertyToID("_BouncesCount");
+        internal static readonly int MatCameraToWorld           = Shader.PropertyToID("_CameraToWorld");
+        internal static readonly int MatCameraInverseProjection = Shader.PropertyToID("_CameraInverseProjection");
 
-        public static int MatCameraToWorld           = Shader.PropertyToID("_CameraToWorld");
-        public static int MatCameraInverseProjection = Shader.PropertyToID("_CameraInverseProjection");
-
-        public static int VecPixelOffsetAA     = Shader.PropertyToID("_PixelOffsetAA");
-        public static int VecAmbientColor      = Shader.PropertyToID("_AmbientColor");
-        public static int VecDirectionalLight  = Shader.PropertyToID("_DirectionalLight");
+        internal static readonly int VecPixelOffsetAA           = Shader.PropertyToID("_PixelOffsetAA");
+        internal static readonly int VecAmbientColor            = Shader.PropertyToID("_AmbientColor");
+        internal static readonly int VecDirectionalLight        = Shader.PropertyToID("_DirectionalLight");
     };
 
     private struct Sphere
@@ -61,6 +60,14 @@ public class RayTracerComponent : MonoBehaviour
         {
             ResetRendering();
             transform.hasChanged = false;
+        }
+    }
+
+    private void OnGUI()
+    {
+        if (GUILayout.Button(($"Samples: {_currentSample}")))
+        {
+            ResetRendering();
         }
     }
 
