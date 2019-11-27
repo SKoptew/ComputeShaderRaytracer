@@ -17,7 +17,7 @@ float4 _DirectionalLight;
 struct Sphere
 {
     float3 position;
-    float radius;
+    float  radius;
     float3 albedo;
     float3 specular;
 };
@@ -96,8 +96,8 @@ void IntersectGroundPlane(Ray ray, inout RayHit bestHit, float groundH)
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = float3(0.0, 1.0, 0.0);
-        bestHit.albedo = 0.2;
-        bestHit.specular = 0.8;
+        bestHit.albedo = 0.4;
+        bestHit.specular = 0.3;
     }
 }
 
@@ -168,14 +168,18 @@ float3 Shade(inout Ray ray, RayHit hit)
 {
     if (hit.distance < 1.#INF)
     {
-        const float3 specular = hit.specular;
-        const float3 albedo   = hit.albedo;
-
+        //-- modify ray
         ray.origin     = hit.position + hit.normal * 0.001f;
         ray.direction  = reflect(ray.direction, hit.normal);
-        ray.energy    *= specular; // color of reflections
+        ray.energy    *= hit.specular; // color of reflections
+        
+        //-- calc shadow
+        Ray shadowRay    = CreateRay(ray.origin, _DirectionalLight.xyz);
+        RayHit shadowHit = TraceScene(shadowRay);
+        if (shadowHit.distance < 1.#INF)
+            return 0.0;
 
-        return albedo * saturate(dot(hit.normal, _DirectionalLight.xyz)) * _DirectionalLight.w; // diffuse component
+        return hit.albedo * saturate(dot(hit.normal, _DirectionalLight.xyz)) * _DirectionalLight.w; // diffuse component
     }
     else
     {
@@ -204,9 +208,12 @@ void CSMain (uint3 groupID          : SV_DispatchThreadID,
         RayHit hit = TraceScene(ray);
 
         result += ray.energy * Shade(ray, hit);
-
-        if (!any(ray.energy))
+        
+        if (dot(ray.energy, ray.energy) < 0.001)
             break;
+
+        //if (!any(ray.energy))
+        //    break;
     }
 
     Result[groupID.xy] = float4(result, 1.0);

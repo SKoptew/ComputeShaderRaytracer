@@ -1,7 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Vector2 = UnityEngine.Vector2;
+using Vector3 = UnityEngine.Vector3;
+using Vector4 = UnityEngine.Vector4;
 
 //-- component must be attached to camera (due to OnRenderImage)
 [ExecuteAlways, RequireComponent(typeof(Camera))]
@@ -9,6 +13,10 @@ public class RayTracerComponent : MonoBehaviour
 {
     [Range(0,16)]
     public int BouncesCount = 6;
+
+    public Vector2 SphereRadius = new Vector2(3.0f, 8.0f);
+    public uint SpheresMax = 100;
+    public float SpherePlacementRadius = 100.0f;
 
     public ComputeShader RayTracingCS;
     public Texture       SkyboxTexture;
@@ -154,18 +162,38 @@ public class RayTracerComponent : MonoBehaviour
     {
         List<Sphere> spheres = new List<Sphere>();
 
-        int cnt = 4;
-        float step = 4.0f;
-
-        for (int x = 0; x < cnt; x++)
-        for (int y = 0; y < cnt; y++)
+        for (int i = 0; i < SpheresMax; i++)
         {
-            var sphere = new Sphere();
+            Sphere sphere = new Sphere();
 
-            sphere.position = new Vector3(x * step, 1.0f, y * step);
-            sphere.radius = Mathf.Lerp(1.0f, 1.5f, Random.value);
-            sphere.albedo = new Vector3(0.4f + Mathf.Abs(x) * 0.3f, 0.2f + Mathf.Abs(y) * 0.4f, 1.0f - Mathf.Abs(x * y) * 0.15f);
-            sphere.specular = new Vector3(1.0f - Mathf.Clamp01(y), 1.0f - Mathf.Clamp01(y), 1.0f - Mathf.Clamp01(y));
+            bool intersectionWithOthers = false;
+
+            do
+            {
+                sphere.radius = SphereRadius.x + Random.value * (SphereRadius.y - SphereRadius.x);
+                Vector2 randomPos = Random.insideUnitCircle * SpherePlacementRadius;
+                sphere.position = new Vector3(randomPos.x, sphere.radius, randomPos.y);
+
+                // check intersection
+                intersectionWithOthers = false;
+                foreach (var other in spheres)
+                {
+                    float minDist = sphere.radius + other.radius;
+
+                    if (Vector3.SqrMagnitude(sphere.position - other.position) < minDist * minDist)
+                    {
+                        intersectionWithOthers = true;
+                        break;
+                    }
+                }
+            } while (intersectionWithOthers);
+
+            //-- material parameters
+            Color color = Random.ColorHSV();
+            bool metal = Random.value < 0.5f;
+
+            sphere.albedo   = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
+            sphere.specular = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
 
             spheres.Add(sphere);
         }
