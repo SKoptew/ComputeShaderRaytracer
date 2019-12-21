@@ -28,6 +28,7 @@ public class RayTracerComponent : MonoBehaviour
 
     private Camera        _camera;
     private RenderTexture _target;
+    private RenderTexture _converged; // high-precision float texture
 
     private Material _addMaterial;
     private uint     _currentSample = 0;
@@ -104,20 +105,20 @@ public class RayTracerComponent : MonoBehaviour
         if (!ValidateResources())
             return;
 
-        if (Application.isPlaying)
-        {
-            RenderToTexture(dest);
+        RenderToTexture();
 
+        if (Application.isPlaying && _converged != null)
+        {
             if (_addMaterial == null)
                 _addMaterial = new Material(Shader.Find("Hidden/AddBlendingShader"));
 
             _addMaterial.SetFloat("_Sample", _currentSample++);
-            Graphics.Blit(_target, dest, _addMaterial);
+            Graphics.Blit(_target, _converged, _addMaterial); // accumulate samles in high-precision _converged texture
+
+            Graphics.Blit(_converged, dest);
         }
         else
         {
-            RenderToTexture(dest);
-
             Graphics.Blit(_target, dest);
         }
     }
@@ -130,7 +131,7 @@ public class RayTracerComponent : MonoBehaviour
                _bufferSpheres   != null;
     }
 
-    private void RenderToTexture(RenderTexture dest)
+    private void RenderToTexture()
     {
         InitRenderTexture();
 
@@ -213,11 +214,20 @@ public class RayTracerComponent : MonoBehaviour
         if (_target == null || _target.width != Screen.width || _target.height != Screen.height)
         {
             if (_target != null)
+            {
                 _target.Release();
+                _converged.Release();
+            }
 
             _target = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             _target.enableRandomWrite = true;
             _target.Create();
+
+            _converged = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+            _converged.enableRandomWrite = true;
+            _converged.Create();
+
+            ResetRendering();
         }
     }
 }

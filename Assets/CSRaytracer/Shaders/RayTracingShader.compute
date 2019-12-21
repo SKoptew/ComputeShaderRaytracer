@@ -55,7 +55,6 @@ Ray CreateCameraRay(float2 uv)
     directionWS = normalize(directionWS);
 
     return CreateRay(originWS, directionWS);
-
 }
 //-------------------------------------------------------------------------------------------
 struct RayHit
@@ -122,44 +121,21 @@ void IntersectSphere(Ray ray, inout RayHit bestHit, Sphere sphere)
         bestHit.normal = normalize(bestHit.position - sphere.position);
 
         bestHit.albedo   = sphere.albedo;
-        bestHit.specular = sphere.specular;
+        bestHit.specular = sphere.specular; // affects on ray energy
     }
 }
-
-//float Min3(float a, float b, float c)
-//{
-//    return min(min(a, b), c);
-//}
-//
-//void IntersectBBox(Ray ray, inout RayHit bestHit, float3 bmin, float3 bmax)
-//{
-//    float3 tmin = (bmin - ray.origin) / ray.direction;
-//    float3 tmax = (bmax - ray.origin) / ray.direction;
-//
-//    float t_min = Min3(tmin.x, tmin.y, tmin.z);
-//    float t_max = Min3(tmax.x, tmax.y, tmax.z);
-//
-//    float t = min(t_min, t_max);
-//
-//    if (t > 0.0 && t < bestHit.distance)
-//    {
-//        bestHit.distance = t;
-//        bestHit.position = ray.origin + t * ray.direction;
-//        bestHit.normal = -ray.direction;
-//    }
-//}
 //-------------------------------------------------------------------------------------------
 RayHit TraceScene(Ray ray)
 {
-    RayHit bestHit = CreateRayHit();
-
-    IntersectGroundPlane(ray, bestHit, 0.0);
+    RayHit bestHit = CreateRayHit();    
 
     uint numSpheres, stride;
     _Spheres.GetDimensions(numSpheres, stride);
 
     for (uint i = 0; i < numSpheres; i++)
         IntersectSphere(ray, bestHit, _Spheres[i]);
+    
+    IntersectGroundPlane(ray, bestHit, 0.0);
 
     return bestHit;
 }
@@ -211,9 +187,6 @@ void CSMain (uint3 groupID          : SV_DispatchThreadID,
         
         if (dot(ray.energy, ray.energy) < 0.001)
             break;
-
-        //if (!any(ray.energy))
-        //    break;
     }
 
     Result[groupID.xy] = float4(result, 1.0);
