@@ -1,5 +1,6 @@
 ﻿#pragma kernel CSMain
 
+//-- Uniform variables
 RWTexture2D<float4> Result; // GetDimensions, Load, operator[]
 
 Texture2D<float4> _SkyboxTexture;
@@ -11,21 +12,52 @@ float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
 float4   _PixelOffsetAA; // xz - pixel offset, changing every frame; zw - unised
 float3   _AmbientColor;
+float    _Seed;
 
 float4 _DirectionalLight;
 
 struct Sphere
 {
     float3 position;
-    float  radius;
+    float radius;
     float3 albedo;
     float3 specular;
 };
 
 StructuredBuffer<Sphere> _Spheres;
 
+//-- global variables
 static const float PI = 3.14159265f;
+float2 _Pixel;
 
+float Rand()
+{
+    float result = frac(sin(_Seed * dot(_Pixel, float2(12.9898f, 78.233f))) * 43758.5453f);
+    _Seed += 1.0f;
+    return result;
+}
+
+// cosine-weighted sampling
+float3 SampleHemisphereTS(float alpha)
+{
+    float cosTheta = pow(Rand(), 1.0f / (alpha + 1.0f));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    float phi = 2 * PI * Rand();
+    
+    return float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+float3x3 GetTangentSpace(float3 normal)
+{
+    float3 helper = float3(0, 0, 1);
+    if( abs(normal.z) > 0.99f)
+        helper = float3(1, 0, 0);
+   
+    float3 tangent  = normalize(cross(helper, normal));
+    float3 binormal = normalize(cross(tangent, normal));
+    
+    return float3x3(tangent, binormal, normal);    
+}
 //-------------------------------------------------------------------------------------------
 struct Ray
 {
@@ -78,7 +110,7 @@ RayHit CreateRayHit()
     return hit;
 };
 //-------------------------------------------------------------------------------------------
-float3 SampleSkybox(float3 direction) // $$$ what about RenderDoc debugging?
+float3 SampleSkybox(float3 direction)
 {
     const float phi = atan2(direction.x, -direction.z) / -PI * 0.5f;
     const float theta = acos(direction.y) / -PI;    
@@ -95,8 +127,8 @@ void IntersectGroundPlane(Ray ray, inout RayHit bestHit, float groundH)
         bestHit.distance = t;
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = float3(0.0, 1.0, 0.0);
-        bestHit.albedo = 0.4;
-        bestHit.specular = 0.3;
+        bestHit.albedo = 0.9;
+        bestHit.specular = 0.05;
     }
 }
 
@@ -140,22 +172,56 @@ RayHit TraceScene(Ray ray)
     return bestHit;
 }
 
+float sdot(float3 a, float3 b)
+{
+    return saturate(dot(a, b));
+}
+
+float Energy(float3 color)
+{
+    return dot(color, 1.0 / 3.0);
+}
+
+float SmoothnessToPhongAlpha(float s)
+{
+    return pow(10.0e4, s * s);
+}
+
+
 float3 Shade(inout Ray ray, RayHit hit)
 {
     if (hit.distance < 1.#INF)
     {
-        //-- modify ray
-        ray.origin     = hit.position + hit.normal * 0.001f;
-        ray.direction  = reflect(ray.direction, hit.normal);
-        ray.energy    *= hit.specular; // color of reflections
+        // phong shading        
         
-        //-- calc shadow
-        Ray shadowRay    = CreateRay(ray.origin, _DirectionalLight.xyz);
-        RayHit shadowHit = TraceScene(shadowRay);
-        if (shadowHit.distance < 1.#INF)
-            return 0.0;
-
-        return hit.albedo * saturate(dot(hit.normal, _DirectionalLight.xyz)) * _DirectionalLight.w; // diffuse component
+        // calc chances of diffuse or specular reflection
+        hit.albedo = min(hit.albedo, 1.0 - hit.specular);
+        float specChance = Energy(hit.specular);
+        float diffChance = Energy(hit.albedo);
+        
+        float sum = specChance + diffChance;
+        specChance /= sum;
+        diffChance /= sum;
+        
+        ray.origin = hit.position + hit.normal * 0.001f;
+              
+        if (Rand() < specChance)
+        {
+            //-- specular
+            float alpha = SmoothnessToPhongAlpha(1.0f);
+            ray.direction = mul(SampleHemisphereTS(alpha), GetTangentSpace(reflect(ray.direction, hit.normal)));
+            
+            float f = (alpha + 2.0) / (alpha + 1.0);
+            ray.energy *= (1.0 / specChance) * hit.specular * sdot(hit.normal, ray.direction);
+        }
+        else
+        {
+            //-- diffuse
+            ray.direction = mul(SampleHemisphereTS(1.0), GetTangentSpace(hit.normal));
+            ray.energy *= (1.0 / diffChance) * hit.albedo;
+        }
+        
+        return 0.0;
     }
     else
     {
@@ -175,7 +241,11 @@ void CSMain (uint3 groupID          : SV_DispatchThreadID,
     uint width, height;
     Result.GetDimensions(width, height);
 
-    float2 uv = (float2(groupID.xy) + _PixelOffsetAA.xy) / float2(width, height); // 0..1
+    float2 uv = (float2(groupID.xy) + _PixelOffsetAA.xy) / float2(width, height); // 0..1   
+    
+    _Pixel = float2(groupID.xy) / float2(width, height);
+    //_Pixel = uv; // wrong, but interesting result if _Seed also disabled
+    
     Ray ray = CreateCameraRay(uv);
 
     float3 result = 0.0;

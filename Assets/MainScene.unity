@@ -246,12 +246,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   BouncesCount: 16
-  SphereRadius: {x: 3, y: 8}
-  SpheresMax: 100
-  SpherePlacementRadius: 100
+  Seed: 20
+  SphereRadius: {x: 4, y: 16}
+  SpheresMax: 120
+  SpherePlacementRadius: 80
   RayTracingCS: {fileID: 7200000, guid: ad1958615e9849545b44fef52ae925de, type: 3}
   SkyboxTexture: {fileID: 2800000, guid: 35c913fd6df93844db804d750b50e138, type: 3}
-  AmbientColor: {r: 0.6698113, g: 0.6698113, b: 0.6698113, a: 1}
+  AmbientColor: {r: 0.764151, g: 0.764151, b: 0.764151, a: 1}
   DirectionalLight: {fileID: 705507994}
 --- !u!20 &963194227
 Camera:

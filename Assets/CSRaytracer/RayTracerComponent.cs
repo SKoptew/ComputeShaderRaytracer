@@ -13,6 +13,7 @@ public class RayTracerComponent : MonoBehaviour
 {
     [Range(0,16)]
     public int BouncesCount = 6;
+    public int Seed = 0;
 
     public Vector2 SphereRadius = new Vector2(3.0f, 8.0f);
     public uint SpheresMax = 100;
@@ -150,6 +151,8 @@ public class RayTracerComponent : MonoBehaviour
         RayTracingCS.SetVector(ShaderProperties.VecPixelOffsetAA, new Vector4(Random.value, Random.value, 0.0f, 0.0f));
         RayTracingCS.SetVector(ShaderProperties.VecAmbientColor, AmbientColor.linear);
 
+        RayTracingCS.SetFloat("_Seed", Random.value);
+
         var dirLight = -DirectionalLight.transform.forward;
         RayTracingCS.SetVector(ShaderProperties.VecDirectionalLight, new Vector4(dirLight.x, dirLight.y, dirLight.z, DirectionalLight.intensity));
 
@@ -161,6 +164,8 @@ public class RayTracerComponent : MonoBehaviour
 
     private void SetupScene()
     {
+        Random.InitState(Seed);
+
         List<Sphere> spheres = new List<Sphere>();
 
         for (int i = 0; i < SpheresMax; i++)
