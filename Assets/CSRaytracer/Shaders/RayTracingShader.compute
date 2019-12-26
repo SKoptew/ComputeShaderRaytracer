@@ -19,9 +19,11 @@ float4 _DirectionalLight;
 struct Sphere
 {
     float3 position;
-    float radius;
+    float  radius;
     float3 albedo;
     float3 specular;
+    float  smoothness;
+    float3 emission;
 };
 
 StructuredBuffer<Sphere> _Spheres;
@@ -98,14 +100,18 @@ struct RayHit
     //-- hit material parameters
     float3 albedo;
     float3 specular;
+    float  smoothness;
+    float3 emission;
 };
 
 RayHit CreateRayHit()
 {
     RayHit hit;
-    hit.position = 0.0;
-    hit.distance = 1.#INF;
-    hit.normal   = 0.0;
+    hit.position   = 0.0;
+    hit.distance   = 1.#INF;
+    hit.normal     = 0.0;
+    hit.smoothness = 0.0;
+    hit.emission   = 0.0;
 
     return hit;
 };
@@ -124,11 +130,13 @@ void IntersectGroundPlane(Ray ray, inout RayHit bestHit, float groundH)
 
     if (t > 0 && t < bestHit.distance)
     {
-        bestHit.distance = t;
-        bestHit.position = ray.origin + t * ray.direction;
-        bestHit.normal = float3(0.0, 1.0, 0.0);
-        bestHit.albedo = 0.9;
-        bestHit.specular = 0.05;
+        bestHit.distance   = t;
+        bestHit.position   = ray.origin + t * ray.direction;
+        bestHit.normal     = float3(0.0, 1.0, 0.0);
+        bestHit.albedo     = 0.7;
+        bestHit.specular   = 0.07;
+        bestHit.smoothness = 0.2;
+        bestHit.emission   = 0.0;
     }
 }
 
@@ -152,8 +160,10 @@ void IntersectSphere(Ray ray, inout RayHit bestHit, Sphere sphere)
         bestHit.position = ray.origin + t * ray.direction;
         bestHit.normal = normalize(bestHit.position - sphere.position);
 
-        bestHit.albedo   = sphere.albedo;
-        bestHit.specular = sphere.specular; // affects on ray energy
+        bestHit.albedo     = sphere.albedo;
+        bestHit.specular   = sphere.specular;
+        bestHit.smoothness = sphere.smoothness;
+        bestHit.emission   = sphere.emission;
     }
 }
 //-------------------------------------------------------------------------------------------
@@ -208,7 +218,7 @@ float3 Shade(inout Ray ray, RayHit hit)
         if (Rand() < specChance)
         {
             //-- specular
-            float alpha = SmoothnessToPhongAlpha(1.0f);
+            float alpha = SmoothnessToPhongAlpha(hit.smoothness);
             ray.direction = mul(SampleHemisphereTS(alpha), GetTangentSpace(reflect(ray.direction, hit.normal)));
             
             float f = (alpha + 2.0) / (alpha + 1.0);
@@ -221,7 +231,7 @@ float3 Shade(inout Ray ray, RayHit hit)
             ray.energy *= (1.0 / diffChance) * hit.albedo;
         }
         
-        return 0.0;
+        return hit.emission;
     }
     else
     {

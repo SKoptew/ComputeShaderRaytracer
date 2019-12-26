@@ -56,6 +56,8 @@ public class RayTracerComponent : MonoBehaviour
         public float   radius;
         public Vector3 albedo;
         public Vector3 specular;
+        public float   smoothness;
+        public Vector3 emission;
     };
 
     private void Awake()
@@ -196,10 +198,25 @@ public class RayTracerComponent : MonoBehaviour
 
             //-- material parameters
             Color color = Random.ColorHSV();
-            bool metal = Random.value < 0.5f;
 
-            sphere.albedo   = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
-            sphere.specular = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
+            if (Random.value < 0.1) // emissive material
+            {
+                sphere.specular = Vector3.zero;
+                sphere.smoothness = 0.0f;
+
+                var emission = Random.ColorHSV(0, 1, 0, 1, 1.0f, 2.0f);
+                sphere.emission = new Vector3(emission.r, emission.g, emission.b);
+                sphere.albedo = sphere.emission; // both albedo and specular cannot be zero, because of artifacts /0
+            }
+            else
+            {
+                bool metal = Random.value < 0.5f;
+
+                sphere.albedo     = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
+                sphere.specular   = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
+                sphere.smoothness = Random.value;
+                sphere.emission   = Vector3.zero;
+            }
 
             spheres.Add(sphere);
         }
