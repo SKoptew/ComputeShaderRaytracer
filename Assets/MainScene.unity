@@ -246,13 +246,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   BouncesCount: 16
-  Seed: 20
+  Seed: 551
   SphereRadius: {x: 4, y: 16}
   SpheresMax: 120
   SpherePlacementRadius: 80
   RayTracingCS: {fileID: 7200000, guid: ad1958615e9849545b44fef52ae925de, type: 3}
   SkyboxTexture: {fileID: 2800000, guid: 35c913fd6df93844db804d750b50e138, type: 3}
-  AmbientColor: {r: 0.764151, g: 0.764151, b: 0.764151, a: 1}
+  AmbientColor: {r: 0.6509434, g: 0.6509434, b: 0.6509434, a: 1}
   DirectionalLight: {fileID: 705507994}
 --- !u!20 &963194227
 Camera:
@@ -304,13 +304,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.22447565, y: 0.28372064, z: -0.06850112, w: 0.9297424}
+  m_LocalRotation: {x: 0.16559233, y: 0.2874653, z: -0.050532255, w: 0.9420135}
   m_LocalPosition: {x: -81.6, y: 54, z: -115}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 27.147001, y: 33.940002, z: 0}
+  m_LocalEulerAnglesHint: {x: 19.94, y: 33.940002, z: 0}
 --- !u!114 &963194229
 MonoBehaviour:
   m_ObjectHideFlags: 0

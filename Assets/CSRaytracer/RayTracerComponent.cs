@@ -214,7 +214,7 @@ public class RayTracerComponent : MonoBehaviour
 
                 sphere.albedo     = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
                 sphere.specular   = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
-                sphere.smoothness = Random.value;
+                sphere.smoothness = Random.value > 0.75 ? 1.0f : Random.value;
                 sphere.emission   = Vector3.zero;
             }
 
